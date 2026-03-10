@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment secrets
+.env
+
+# Coverage
+coverage/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store

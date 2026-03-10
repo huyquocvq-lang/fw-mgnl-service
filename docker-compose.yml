@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  firmware-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: firmware-mgnl-service:latest
+    container_name: firmware-mgnl-service
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Path inside the container where packages are stored.
+      # Maps to the ./packages volume below.
+      PACKAGE_STORAGE: /data/packages
+      # Set this to protect all endpoints with an API key.
+      # Leave empty to disable authentication (dev/local use only).
+      API_KEY: ${API_KEY:-}
+    volumes:
+      # Mount your local package storage directory into the container.
+      # Replace ./packages with the path to your .tgz files.
+      - ./packages:/data/packages:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
