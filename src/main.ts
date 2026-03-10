@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -14,12 +15,18 @@ async function bootstrap() {
     }),
   );
 
-  // Optional: prefix all routes under /api
-  // app.setGlobalPrefix('api');
+  const config = new DocumentBuilder()
+    .setTitle('Firmware MGNL Service')
+    .setDescription('Package distribution API for Zigbee2MQTT firmware')
+    .setVersion('1.0')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('/', app, document);
 
   const port = parseInt(process.env.PORT ?? '3000', 10);
   await app.listen(port);
   logger.log(`Firmware distribution service listening on port ${port}`);
+  logger.log(`Swagger UI: http://localhost:${port}/`);
 }
 
 bootstrap().catch((err) => {

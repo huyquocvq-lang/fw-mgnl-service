@@ -7,6 +7,7 @@ import {
   BadRequestException,
   StreamableFile,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import type { Response } from 'express';
 import * as fs from 'fs';
 import { PackagesService } from './packages.service';
@@ -16,16 +17,13 @@ import type {
   PackageCheckDto,
 } from './dto/package-info.dto';
 
+@ApiTags('packages')
 @Controller('packages')
 export class PackagesController {
   constructor(private readonly packagesService: PackagesService) {}
 
-  /**
-   * GET /packages/:service
-   * Returns all available versions and the latest tag for a service.
-   *
-   * Example: GET /packages/zigbee-herdsman
-   */
+  @ApiOperation({ summary: 'List versions for a service' })
+  @ApiParam({ name: 'service', example: 'zigbee-herdsman' })
   @Get(':service')
   async getServiceInfo(
     @Param('service') service: string,
@@ -33,13 +31,8 @@ export class PackagesController {
     return this.packagesService.getServiceInfo(service);
   }
 
-  /**
-   * GET /packages/:service/latest
-   * Returns full metadata (version, checksum, download URL) for the
-   * most recent release.
-   *
-   * Example: GET /packages/zigbee-herdsman/latest
-   */
+  @ApiOperation({ summary: 'Get latest version metadata' })
+  @ApiParam({ name: 'service', example: 'zigbee-herdsman' })
   @Get(':service/latest')
   async getLatestMetadata(
     @Param('service') service: string,
@@ -47,13 +40,9 @@ export class PackagesController {
     return this.packagesService.getLatestMetadata(service);
   }
 
-  /**
-   * GET /packages/:service/check?version=X.Y.Z
-   * OTA-friendly endpoint: returns whether an update is available
-   * relative to the supplied version.
-   *
-   * Example: GET /packages/zigbee-herdsman/check?version=0.14.0
-   */
+  @ApiOperation({ summary: 'Check if update available' })
+  @ApiParam({ name: 'service', example: 'zigbee-herdsman' })
+  @ApiQuery({ name: 'version', required: true, example: '0.14.0' })
   @Get(':service/check')
   async checkForUpdate(
     @Param('service') service: string,
@@ -65,13 +54,8 @@ export class PackagesController {
     return this.packagesService.checkForUpdate(service, version);
   }
 
-  /**
-   * GET /packages/:service/download/latest
-   * Streams the latest version `.tgz` file directly to the client.
-   * The file is never loaded into memory — it is piped from disk.
-   *
-   * Example: GET /packages/zigbee-herdsman/download/latest
-   */
+  @ApiOperation({ summary: 'Download latest .tgz' })
+  @ApiParam({ name: 'service', example: 'zigbee-herdsman' })
   @Get(':service/download/latest')
   async downloadLatest(
     @Param('service') service: string,
@@ -81,12 +65,9 @@ export class PackagesController {
     return this.streamFile(filePath, service, res);
   }
 
-  /**
-   * GET /packages/:service/download/:version
-   * Streams a specific version `.tgz` file directly to the client.
-   *
-   * Example: GET /packages/zigbee-herdsman/download/0.14.0
-   */
+  @ApiOperation({ summary: 'Download specific version .tgz' })
+  @ApiParam({ name: 'service', example: 'zigbee-herdsman' })
+  @ApiParam({ name: 'version', example: '0.14.0' })
   @Get(':service/download/:version')
   async downloadVersion(
     @Param('service') service: string,
