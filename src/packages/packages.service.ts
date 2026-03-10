@@ -113,24 +113,21 @@ export class PackagesService {
 
   /**
    * Resolves the absolute file path for a specific (service, version) pair.
-   * Throws NotFoundException if the file does not exist.
+   * Uses parsed entries so both naming conventions (service_version.tgz and service-version.tgz) work.
    */
   async resolveFilePath(service: string, version: string): Promise<string> {
     if (!isValidVersion(version)) {
       throw new BadRequestException(`Invalid version format: "${version}"`);
     }
 
-    const filePath = this.buildFilePath(service, version);
-
-    try {
-      await fs.promises.access(filePath, fs.constants.R_OK);
-    } catch {
+    const entries = await this.getEntriesForService(service);
+    const entry = entries.find((e) => e.version === version);
+    if (!entry) {
       throw new NotFoundException(
         `Package ${service}@${version} not found`,
       );
     }
-
-    return filePath;
+    return entry.filePath;
   }
 
   /**
@@ -140,7 +137,8 @@ export class PackagesService {
     const entries = await this.getEntriesForService(service);
     const versions = entries.map((e) => e.version);
     const latest = getLatestVersion(versions);
-    return this.buildFilePath(service, latest);
+    const entry = entries.find((e) => e.version === latest)!;
+    return entry.filePath;
   }
 
   // ─────────────────────────────────────────────
@@ -184,27 +182,41 @@ export class PackagesService {
   }
 
   /**
-   * Parses a filename like `zigbee-herdsman_0.15.0.tgz` into a PackageEntry.
-   * Returns null if the filename does not match the expected convention.
-   *
-   * Convention: `{service_name}_{version}.tgz`
-   * The last underscore is used as the separator so service names may
-   * themselves contain underscores.
+   * Parses a filename into a PackageEntry. Supports:
+   * - `{service}_{version}.tgz` (underscore; service may contain underscores)
+   * - `{service}-{version}.tgz` (dash before semver, e.g. zigbee-herdsman-3.4.11.tgz)
    */
   private parseFilename(
     filename: string,
     dir: string,
   ): PackageEntry | null {
-    const base = filename.slice(0, -4); // strip .tgz
+    if (!filename.endsWith('.tgz')) return null;
+    const base = filename.slice(0, -4);
+
+    // Convention 1: last underscore separates service and version
     const lastUnderscore = base.lastIndexOf('_');
-    if (lastUnderscore === -1) return null;
+    if (lastUnderscore !== -1) {
+      const service = base.slice(0, lastUnderscore);
+      const version = base.slice(lastUnderscore + 1);
+      if (service && isValidVersion(version)) {
+        return { service, version, filePath: path.join(dir, filename) };
+      }
+    }
 
-    const service = base.slice(0, lastUnderscore);
-    const version = base.slice(lastUnderscore + 1);
+    // Convention 2: last dash before a semver suffix (e.g. zigbee-herdsman-3.4.11)
+    for (let i = base.length - 1; i >= 0; i--) {
+      if (base[i] === '-') {
+        const version = base.slice(i + 1);
+        if (isValidVersion(version)) {
+          const service = base.slice(0, i);
+          if (service) {
+            return { service, version, filePath: path.join(dir, filename) };
+          }
+        }
+      }
+    }
 
-    if (!service || !isValidVersion(version)) return null;
-
-    return { service, version, filePath: path.join(dir, filename) };
+    return null;
   }
 
   /**
