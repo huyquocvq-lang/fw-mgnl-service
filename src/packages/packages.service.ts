@@ -34,8 +34,14 @@ export class PackagesService {
   private readonly storageRoot: string;
 
   constructor() {
+    const defaultStorage = path.join(
+      __dirname,
+      '..',
+      '..',
+      'storage',
+    );
     this.storageRoot = path.resolve(
-      process.env.PACKAGE_STORAGE ?? './storage',
+      process.env.PACKAGE_STORAGE ?? defaultStorage,
     );
     this.logger.log(`Storage root: ${this.storageRoot}`);
   }

@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "node node_modules/@nestjs/cli/bin/nest.js build",
+    "build": "node node_modules/@nestjs/cli/bin/nest.js build && cp -r storage dist/ 2>/dev/null || true",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "node node_modules/@nestjs/cli/bin/nest.js start",
     "start:dev": "node node_modules/@nestjs/cli/bin/nest.js start --watch",
